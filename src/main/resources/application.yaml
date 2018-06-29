@@ -1,0 +1,88 @@
+application:
+  name: cloud-canary-service
+  version: @project.version@
+  instance-id: ${random.uuid}
+
+spring:
+  cache:
+    ehcache:
+      config: classpath:ehcache.xml
+  zipkin:
+    base-url: some-zipkin-url
+    enabled: false
+  sleuth:
+    sampler:
+      probability: 0.1
+  application:
+    name: ${application.name}
+  cloud:
+    kubernetes:
+      client:
+        namespace: default
+        master-url: url-to-kubernetes
+
+security:
+  basic:
+    metrics:
+      username: user
+      password: pass
+
+server:
+  port: 8080
+
+management:
+  info:
+    defaults:
+      enabled: true
+    git:
+      mode: full
+  endpoints:
+    web:
+      exposure:
+        include:
+        - health
+        - prometheus
+        - info
+      path-mapping:
+        prometheus: metrics #Prometheus metrics will be presented in place of standard ones
+
+auth:
+  basic:
+    token: "token"
+
+zuul:
+  FormBodyWrapperFilter:
+    pre:
+      disable: true
+  DebugFilter:
+    pre:
+      disable: true
+  sensitiveHeaders:
+  ignoredPatterns: /actuator/**, /metrics, /health, /info
+  trace-request-body: false
+  routes:
+    cloud-data-routing:
+      path: /dc/**
+      url: http://localhost:8080
+      strip-prefix: false
+  host:
+    socket-timeout-millis: 1000000
+    connect-timeout-millis: 1000000
+
+hystrix:
+  command:
+    cloud-data-routing:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 1000000
+
+cloud-data-routing:
+  ribbon:
+    ReadTimeout: 1000000
+
+ribbon:
+  eureka:
+    enabled: false
+
+
